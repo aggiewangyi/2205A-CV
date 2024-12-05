@@ -1,2 +1,13 @@
 Git is a distributed version control system.
 Git is free software distributed under the GPL.
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    images_path = config['dataset']['train']['images_path']
+    labels_path = config['dataset']['train']['labels_path']
+    epochs = config['training']['epochs']
+    batch_size = config['training']['batch_size']
+    weight_decay=config['training']['weight_decay']
+    momentum=config['training']['momentum']
+    lr = config['training']['lr']
+    model_path = config['Model']['model_path']
+    shape = config['dataset']['shape']
