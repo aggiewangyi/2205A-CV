@@ -1,5 +1,4 @@
-welcome to 2205a!
-
+welcome to 2205A-CV!
 wish you have a wonderful jurney in AI learning!
 
 we'll have monthly test tomorrow.
