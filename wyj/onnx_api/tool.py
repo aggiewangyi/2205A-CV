@@ -82,23 +82,22 @@ def box_label(im, box, label='', color=(128, 128, 128), txt_color=(255, 255, 255
                     0,  lw / 3, txt_color, thickness=tf, lineType=cv2.LINE_AA)
     return im
 
-def yaml_load(file='data.yaml'):
-    # Single-line safe yaml loading
-    with open(file, errors='ignore') as f:
-        return yaml.safe_load(f)
+# def yaml_load(file='data.yaml'):
+#     # Single-line safe yaml loading
+#     with open(file, errors='ignore') as f:
+#         return yaml.safe_load(f)
 
-def post_process_yolov5(det, im, label_path = 'coco.yaml'):
+def post_process_yolov5(det,im0, im, labelname):
     if len(det):
-        det[:, :4] = scale_boxes(im.shape[:2], det[:, :4], im.shape).round()
-        names = yaml_load(label_path)['names']
+        det[:, :4] = scale_boxes(im, det[:, :4], im0.shape).round()
         colors = Colors()  #
         for *xyxy, conf, cls in reversed(det):
             c = int(cls)
-            label = names[c]
-            box_label(im, xyxy, label, color=colors(c, True))
+            label = labelname[c]
+            box_label(im0, xyxy, label, color=colors(c, True))
             # cv2.imshow("img", im)
             # cv2.waitKey(0)
-    return im
+    return im0
 
 
 def non_max_suppression(

@@ -28,6 +28,8 @@ if __name__ == "__main__":
         pred = torch.from_numpy(res[0]).cpu()
         pred = non_max_suppression(pred,conf_thres=0.5,iou_thres=0.5,max_det=1000)
         print("spend time:{0} ms".format(time.time() - start_time))
-        res_img = post_process_yolov5(pred[0], img0)
+        label_names = session.get_modelmeta().custom_metadata_map['names']
+        label_names = eval(label_names)
+        res_img = post_process_yolov5(pred[0], ori_img ,img.shape[2:],label_names)
         cv2.imshow('res',res_img)
         cv2.waitKey(10)
