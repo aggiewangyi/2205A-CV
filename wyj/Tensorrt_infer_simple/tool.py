@@ -98,8 +98,29 @@ def post_process_yolov5(det,im0, im, labelname):
             # cv2.imshow("img", im)
             # cv2.waitKey(0)
     return im0
-
-
+def post_process_yolov5_engine(det,im0,im,labelpath = 'coco128.yaml'):
+    if len(det):
+        det[:, :4] = scale_boxes(im, det[:, :4], im0.shape).round()
+        colors = Colors()  #
+        with open(labelpath,errors='ignore') as f:
+            names = yaml.safe_load(f)
+        for *xyxy, conf, cls in reversed(det):
+            label = names[int(cls)]
+            box_label(im0, xyxy, label, color=colors(cls, True))
+            # cv2.imshow("img", im)
+            # cv2.waitKey(0)
+    return im0
+class DataLoder():
+    def __init__(self,img_size=[480,480]):
+        self.input_shape = img_size
+    def data_process(self,img):
+        if len(np.shape(img)) != 3 and np.shape(img)[-2] != 3:
+            img = img.convert('RGB')
+        self.ori_h = np.array(img).shape[0]
+        self.ori_w = np.array(img).shape[1]
+        resized_img,self.nw,self.nh = resize_image_cv2(img,[self.input_shape[0],self.input_shape[1]])
+        img_data,ori_data = data_process_cv2(resized_img,[self.input_shape[0],self.input_shape[1]])
+        return img_data,ori_data
 def non_max_suppression(
         prediction,
         conf_thres=0.25,
