@@ -17,16 +17,16 @@ class trt_engine:
         print(engine.get_binding_shape(0))
         print(engine.get_binding_shape(1))
 
-        self.context = engine.create_excecution_context()
+        context = engine.create_execution_context()
 
-        origin_input_shape = self.context.get_binding_shape(0)
-        self.context.set_binding_shape(0,(origin_input_shape))
-        self.inputs,self.outpus,self.bindings,self.stream = common.allocate_buffers(engine,self.context)
+        origin_input_shape = context.get_binding_shape(0)
+        context.set_binding_shape(0,(origin_input_shape))
+        inputs,outpus,bindings,stream = common.allocate_buffers(engine,context)
         self.__dict__.update(locals())
     def trt_inference(self,input_image):
         self.cuda_ct = pycuda.autoinit.context
         self.cuda_ct.push()
-        self.inputs = input_image
+        self.inputs[0].host = input_image
         start_time = time.time()
         trt_outputs = common.do_inference(self.context,bindings=self.bindings,
                                           inputs=self.inputs,outputs=self.outpus,
