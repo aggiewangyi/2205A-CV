@@ -103,7 +103,7 @@ def post_process_yolov5_engine(det,im0,im,labelpath = 'coco128.yaml'):
         det[:, :4] = scale_boxes(im, det[:, :4], im0.shape).round()
         colors = Colors()  #
         with open(labelpath,errors='ignore') as f:
-            names = yaml.safe_load(f)
+            names = yaml.safe_load(f)['names']
         for *xyxy, conf, cls in reversed(det):
             label = names[int(cls)]
             box_label(im0, xyxy, label, color=colors(cls, True))
@@ -111,7 +111,7 @@ def post_process_yolov5_engine(det,im0,im,labelpath = 'coco128.yaml'):
             # cv2.waitKey(0)
     return im0
 class DataLoder():
-    def __init__(self,img_size=[480,480]):
+    def __init__(self, img_size=[480,480]):
         self.input_shape = img_size
     def data_process(self,img):
         if len(np.shape(img)) != 3 and np.shape(img)[-2] != 3:
