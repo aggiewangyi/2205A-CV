@@ -168,7 +168,7 @@ cython_debug/
 #.idea/
 
 *.onnx
-
+coco/
 #images
 *.jpg
 *.png
