@@ -12,9 +12,7 @@ class trt_engine:
         engine = runtime.deserialize_cuda_engine(f.read())
         # print(engine.get_binding_shape(0))
         # print(engine.get_binding_shape(1))
-
         context = engine.create_execution_context()
-
         origin_input_shape = context.get_binding_shape(0)
         #context.set_binding_shape(0,(origin_input_shape))
         inputs, outputs, bindings, stream = common.allocate_buffers(engine, context)
@@ -38,16 +36,16 @@ class trt_engine:
 
 if __name__ == '__main__':
     trt = trt_engine()
-    img_dir = 'images'
+    img_dir = r'E:\coco\images\val2017'
     img_list = os.listdir(img_dir)
     data_loader = DataLoder([640, 640])
     for img_name in img_list:
-        start_time = time.time()
-        img_path = os.path.join(img_dir,img_name)
+        # start_time = time.time()
+        img_path = os.path.join(img_dir, img_name)
         img = cv2.imread(img_path)
         input_img, ori_img = data_loader.data_process(img)
-        print('input img shape: ', input_img.shape)
+        # print('input img shape: ', input_img.shape)
         prediction = trt.trt_inference(input_img)
         res_img = post_process_yolov5_engine(prediction[0], img, input_img.shape[2:])
-        cv2.imshow('res', res_img)
-        cv2.waitKey(0)
+        # cv2.imshow('res', res_img)
+        # cv2.waitKey(0)
