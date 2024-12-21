@@ -133,13 +133,15 @@ def post_process_yolov5(det, im, names, org_data):
         det[:, :4] = scale_boxes(org_data.shape, det[:, :4], im.shape[:2]).round()
     # names = yaml_load(label_path)['names']
     colors = Colors()  #
+    label_name = []
     for *xyxy, conf, cls in reversed(det):
         c = int(cls)
         label = names[c]
+        label_name.append(label)
         box_label(im, xyxy, label, color=colors(c, True))
         # cv.imshow("img",im)
         # cv2.waitKey(0)
-    return im
+    return im ,label_name
 
 
 def non_max_suppression(
