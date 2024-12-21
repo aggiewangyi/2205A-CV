@@ -40,8 +40,6 @@ device = torch.device("cuda:0")
 # def home():
 #     return render_template('./templates/home.html')
 import base64
-
-
 # 将图片转编码成二进制流
 def cv2_to_base64(image):
     image = cv2.imencode('.jpg', image)[1]
