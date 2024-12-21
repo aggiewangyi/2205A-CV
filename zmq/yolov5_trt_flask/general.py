@@ -7,70 +7,6 @@ import cv2
 import yaml
 
 
-class Colors:
-    """Provides an RGB color palette derived from Ultralytics color scheme for visualization tasks."""
-
-    def __init__(self):
-        """
-        Initializes the Colors class with a palette derived from Ultralytics color scheme, converting hex codes to RGB.
-
-        Colors derived from `hex = matplotlib.colors.TABLEAU_COLORS.values()`.
-        """
-        hexs = (
-            "FF3838",
-            "FF9D97",
-            "FF701F",
-            "FFB21D",
-            "CFD231",
-            "48F90A",
-            "92CC17",
-            "3DDB86",
-            "1A9334",
-            "00D4BB",
-            "2C99A8",
-            "00C2FF",
-            "344593",
-            "6473FF",
-            "0018EC",
-            "8438FF",
-            "520085",
-            "CB38FF",
-            "FF95C8",
-            "FF37C7",
-        )
-        self.palette = [self.hex2rgb(f"#{c}") for c in hexs]
-        self.n = len(self.palette)
-
-    def __call__(self, i, bgr=False):
-        """Returns color from palette by index `i`, in BGR format if `bgr=True`, else RGB; `i` is an integer index."""
-        c = self.palette[int(i) % self.n]
-        return (c[2], c[1], c[0]) if bgr else c
-
-    @staticmethod
-    def hex2rgb(h):
-        """Converts hexadecimal color `h` to an RGB tuple (PIL-compatible) with order (R, G, B)."""
-        return tuple(int(h[1 + i: 1 + i + 2], 16) for i in (0, 2, 4))
-
-
-def xywh2xyxy(x):
-    """Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right."""
-    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
-    y[..., 0] = x[..., 0] - x[..., 2] / 2  # top left x
-    y[..., 1] = x[..., 1] - x[..., 3] / 2  # top left y
-    y[..., 2] = x[..., 0] + x[..., 2] / 2  # bottom right x
-    y[..., 3] = x[..., 1] + x[..., 3] / 2  # bottom right y
-    return y
-
-
-def box_iou(box1, box2, eps=1e-7):
-    # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
-    (a1, a2), (b1, b2) = box1.unsqueeze(1).chunk(2, 2), box2.unsqueeze(0).chunk(2, 2)
-    inter = (torch.min(a2, b2) - torch.max(a1, b1)).clamp(0).prod(2)
-
-    # IoU = inter / (area1 + area2 - inter)
-    return inter / ((a2 - a1).prod(2) + (b2 - b1).prod(2) - inter + eps)
-
-
 def clip_boxes(boxes, shape):
     """Clips bounding box coordinates (xyxy) to fit within the specified image shape (height, width)."""
     if isinstance(boxes, torch.Tensor):  # faster individually
@@ -101,48 +37,19 @@ def scale_boxes(img1_shape, boxes, img0_shape, ratio_pad=None):
     return boxes
 
 
-def box_label(im, box, label='', color=(128, 128, 128), txt_color=(255, 255, 255)):
-    lw = 2
-    p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
-    cv2.rectangle(im, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
-    if label:
-        tf = max(lw - 1, 1)  # font thickness
-        w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, h
-        outside = p1[1] - h >= 3
-        p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
-        cv2.rectangle(im, p1, p2, color, -1, cv2.LINE_AA)  # filled
-        # lw =line_width or max(round(sum(im.shape)/2 *0.003)，2)
-        cv2.putText(im, label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
-                    0, lw / 3, txt_color, thickness=tf, lineType=cv2.LINE_AA)
-
-    return im
-
-
 def yaml_load(file="data.yaml"):
     """Safely loads and returns the contents of a YAML file specified by `file` argument."""
     with open(file, errors="ignore") as f:
         return yaml.safe_load(f)
 
-
-# def post_process_yolov5(det, im, label_path="coco_label.yaml"):
-# im[??,??,3]原图  org_data:[640,640,3]变换维度前
-def post_process_yolov5(det, im, names, org_data):
-    if len(det):
-        # det[:, :4] = scale_boxes(im.shape[:2], det[:, :4], im.shape).round()
-        # org_data.shape[640,640,3]  im.shape[:2]原图宽高
-        det[:, :4] = scale_boxes(org_data.shape, det[:, :4], im.shape[:2]).round()
-    # names = yaml_load(label_path)['names']
-    colors = Colors()  #
-    label_name = []
-    for *xyxy, conf, cls in reversed(det):
-        c = int(cls)
-        label = names[c]
-        label_name.append(label)
-        box_label(im, xyxy, label, color=colors(c, True))
-        # cv.imshow("img",im)
-        # cv2.waitKey(0)
-    return im ,label_name
-
+def xywh2xyxy(x):
+    """Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right."""
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[..., 0] = x[..., 0] - x[..., 2] / 2  # top left x
+    y[..., 1] = x[..., 1] - x[..., 3] / 2  # top left y
+    y[..., 2] = x[..., 0] + x[..., 2] / 2  # bottom right x
+    y[..., 3] = x[..., 1] + x[..., 3] / 2  # bottom right y
+    return y
 
 def non_max_suppression(
         prediction,
@@ -255,49 +162,3 @@ def non_max_suppression(
             break  # time limit exceeded
 
     return output
-
-
-def resize_image_cv2(image, size):
-    ih, iw, ic = image.shape
-    w, h = size
-    scale = min(w / iw, h / ih)
-    nw = int(iw * scale)
-    nh = int(ih * scale)
-
-    image = cv2.resize(image, (nw, nh))
-    new_image = np.ones((size[0], size[1], 3), dtype='uint8') * 128
-    # new_image = np.ones((size[0], size[1], 3), dtype='uint8')
-    start_h = (h - nh) / 2
-    start_w = (w - nw) / 2
-    end_h = size[1] - start_h
-    end_w = size[0] - start_w
-    new_image[int(start_h):int(end_h), int(start_w):int(end_w)] = image
-
-    # cv2.imshow('new_image',new_image)
-    # cv2.waitKey(0)
-    return new_image, nw, nh
-
-
-def data_process_cv2(frame, input_shape):
-    image_data, nw, nh = resize_image_cv2(frame, (input_shape[1], input_shape[0]))
-    org_data = image_data.copy()
-    np_data = np.array(image_data, np.float32)
-    np_data = np_data / 255
-    image_data = np.expand_dims(np.transpose(np_data, (2, 0, 1)), 0)
-    image_data = np.ascontiguousarray(image_data)  # 内存连续
-    return image_data, org_data
-
-    # img = cv2.resize(img,imgsz)
-    # # print(img.shape)
-    # img = img/255
-    # # print(img.shape)
-    # img = np.expand_dims(img,axis=0)
-    # # print(img.shape)
-    # img = np.transpose(img,(0,3,2,1))
-    # return img
-
-# img = np.zeros([55,55,3])
-# print(img.shape)
-# imgsz = [100,100]
-# print(data_process_cv2(img, imgsz).shape)
-#
