@@ -134,7 +134,7 @@ def post_process_yolov5(det, im, label_path="coco_label.yaml"):
             # cv2.imshow('img', im)
             # cv2.waitKey()
             # cv2.destroyAllWindows()
-    return im
+    return im,label
 
 LOGGING_NAME = "yolov5"
 
