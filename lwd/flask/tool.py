@@ -1,63 +1,75 @@
 # -*- coding: utf-8 -*-
 import torch
 import time
-import numpy
+import numpy as np
 import torchvision
 import cv2
 import yaml
-import logging
-import os
-import logging.config
-import platform
+
 
 class Colors:
-    def __init__(self):
-        hexs = (
-            "FF3838", "FF9D97", "FF701F", "2C99A8", "00C2FF", "344593", "FFB21D",
-            "CFD231", "48F90A", "92CC17", "6473FF", "0018EC", "8438FF", "520085",
-            "CB38FF", "FF95C8", "FF37C7", "FFDDFF", "00E436", "FFD23F", "0089BA",
-            "D100F1", "F1C100", "F1D300", "BEDE0D", "FCC200", "F1A100", "F1CA7D",
-            "8CE600", "00D8FF", "D1F1F1", "F1E2E2", "F1DADA", "F1B2B2", "F1A1A1",
-            "F1D4D4", "F1E8E8", "F1F4F4", "F1BBBB", "F1BFBF", "F1D6D6", "F1E2E2",
-            "F1EEEE", "F1F9F9", "F1C4C4", "F1D1D1", "F1E6E6", "F1F3F3", "F1ECEC",
-            "F1F7F7", "F1D9D9", "F1E5E5", "F1F2F2", "F1DEDE", "F1EFEF", "F1F8F8",
-            "F1E1E1", "F1F6F6", "F1D8D8", "F1E4E4", "F1F1F1", "F1DDDD", "F1E9E9",
-            "F1F5F5", "F1C8C8", "F1D3D3", "F1E7E7", "F1F4F4", "F1C6C6", "F1D2D2",
-            "F1E6E6", "F1F3F3", "F1C5C5", "F1D1D1", "F1E5E5", "F1F2F2", "F1CDCD",
-            "F1D7D7", "F1E3E3", "F1F0F0", "F1CACACA", "F1D4D4", "F1E8E8", "F1F5F5"
-        )
+    """Provides an RGB color palette derived from Ultralytics color scheme for visualization tasks."""
 
-        self.palette = [self.hex2rgb(f'#{c}') for c in hexs]
+    def __init__(self):
+        """
+        Initializes the Colors class with a palette derived from Ultralytics color scheme, converting hex codes to RGB.
+
+        Colors derived from `hex = matplotlib.colors.TABLEAU_COLORS.values()`.
+        """
+        hexs = (
+            "FF3838",
+            "FF9D97",
+            "FF701F",
+            "FFB21D",
+            "CFD231",
+            "48F90A",
+            "92CC17",
+            "3DDB86",
+            "1A9334",
+            "00D4BB",
+            "2C99A8",
+            "00C2FF",
+            "344593",
+            "6473FF",
+            "0018EC",
+            "8438FF",
+            "520085",
+            "CB38FF",
+            "FF95C8",
+            "FF37C7",
+        )
+        self.palette = [self.hex2rgb(f"#{c}") for c in hexs]
         self.n = len(self.palette)
 
     def __call__(self, i, bgr=False):
+        """Returns color from palette by index `i`, in BGR format if `bgr=True`, else RGB; `i` is an integer index."""
         c = self.palette[int(i) % self.n]
         return (c[2], c[1], c[0]) if bgr else c
 
     @staticmethod
     def hex2rgb(h):
-        return tuple(int(h[i + 1 : 1 + i + 2], 16) for i in (0, 2, 4))
+        """Converts hexadecimal color `h` to an RGB tuple (PIL-compatible) with order (R, G, B)."""
+        return tuple(int(h[1 + i: 1 + i + 2], 16) for i in (0, 2, 4))
 
-# def xywh2xyxy(x):
-#     y = x.clone() if isinstance(x, torch.Tensor) else numpy.copy(x)
-#     y[..., 0] = x[..., 0] - x[..., 2] / 2
-#     y[..., 1] = x[..., 1] - x[..., 3] / 2
-#     y[..., 2] = x[..., 0] - x[..., 2] / 2
-#     y[..., 3] = x[..., 1] - x[..., 3] / 2
-#     return y
+
 def xywh2xyxy(x):
-    y = x.clone() if isinstance(x, torch.Tensor) else numpy.copy(x)
-    y[..., 0] = x[..., 0] - x[..., 2] / 2  # x_min
-    y[..., 1] = x[..., 1] - x[..., 3] / 2  # y_min
-    y[..., 2] = x[..., 0] + x[..., 2] / 2  # x_max
-    y[..., 3] = x[..., 1] + x[..., 3] / 2  # y_max
+    """Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right."""
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[..., 0] = x[..., 0] - x[..., 2] / 2  # top left x
+    y[..., 1] = x[..., 1] - x[..., 3] / 2  # top left y
+    y[..., 2] = x[..., 0] + x[..., 2] / 2  # bottom right x
+    y[..., 3] = x[..., 1] + x[..., 3] / 2  # bottom right y
     return y
 
 
 def box_iou(box1, box2, eps=1e-7):
+    # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
     (a1, a2), (b1, b2) = box1.unsqueeze(1).chunk(2, 2), box2.unsqueeze(0).chunk(2, 2)
-    inter = (torch.min(a2, b2) - torch.max(a1, b1).clamp(0).prod(2))
-    return inter / ((a1 - a2).prod(2) + (b2 - b1).prod(2) - inter + eps)
+    inter = (torch.min(a2, b2) - torch.max(a1, b1)).clamp(0).prod(2)
+
+    # IoU = inter / (area1 + area2 - inter)
+    return inter / ((a2 - a1).prod(2) + (b2 - b1).prod(2) - inter + eps)
+
 
 def clip_boxes(boxes, shape):
     """Clips bounding box coordinates (xyxy) to fit within the specified image shape (height, width)."""
@@ -72,103 +84,78 @@ def clip_boxes(boxes, shape):
 
 
 def scale_boxes(img1_shape, boxes, img0_shape, ratio_pad=None):
+    # img1_shape[640,640,3]  img0_shape[:2]原图宽高
     """Rescales (xyxy) bounding boxes from img1_shape to img0_shape, optionally using provided `ratio_pad`."""
     if ratio_pad is None:  # calculate from img0_shape
+        # img0_shape:[h,w]
         gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])  # gain  = old / new
         pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (img1_shape[0] - img0_shape[0] * gain) / 2  # wh padding
     else:
         gain = ratio_pad[0][0]
         pad = ratio_pad[1]
-
+    # boxes:[x1,y1,x2,y2]
     boxes[..., [0, 2]] -= pad[0]  # x padding
     boxes[..., [1, 3]] -= pad[1]  # y padding
     boxes[..., :4] /= gain
     clip_boxes(boxes, img0_shape)
     return boxes
 
-def box_label(im, box, label='', color=(128,128,128), txt_color=(255,255,255)):
+
+def box_label(im, box, label='', color=(128, 128, 128), txt_color=(255, 255, 255)):
     lw = 2
-    color = (255, 0, 0)
-    w = 0
-    h = 0
-    # if label:
-    #     tf = max(lw - 1, 1)
-    #     w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]
     p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
-    cv2.rectangle(im, p1, p2, color, 2, lineType=cv2.LINE_AA)
-    # cv2.imshow('img', im)
-    # cv2.waitKey()
-    # cv2.destroyAllWindows()
+    cv2.rectangle(im, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
     if label:
-        tf = max(lw - 1, 1)
-        w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]
+        tf = max(lw - 1, 1)  # font thickness
+        w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, h
         outside = p1[1] - h >= 3
-        p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 2
-        cv2.rectangle(im, p1, p2, color, -1, cv2.LINE_AA)
-        # cv2.imshow('img', im)
-        # cv2.waitKey()
-        # cv2.destroyAllWin
-        #
-        # dows()
-        cv2.putText(im, label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2), 0, lw / 3, txt_color, thickness=tf, lineType=cv2.LINE_AA)
-        # cv2.imshow('img', im)
-        # cv2.waitKey()
-        # cv2.destroyAllWindows()
+        p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
+        cv2.rectangle(im, p1, p2, color, -1, cv2.LINE_AA)  # filled
+        # lw =line_width or max(round(sum(im.shape)/2 *0.003)，2)
+        cv2.putText(im, label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
+                    0, lw / 3, txt_color, thickness=tf, lineType=cv2.LINE_AA)
+
     return im
+
 
 def yaml_load(file="data.yaml"):
     """Safely loads and returns the contents of a YAML file specified by `file` argument."""
     with open(file, errors="ignore") as f:
         return yaml.safe_load(f)
 
-def post_process_yolov5(det, im, label_path="coco_label.yaml"):
+
+# def post_process_yolov5(det, im, label_path="coco_label.yaml"):
+# im[??,??,3]原图  org_data:[640,640,3]变换维度前
+# def post_process_yolov5(det, im, names, org_data):
+#     if len(det):
+#         # det[:, :4] = scale_boxes(im.shape[:2], det[:, :4], im.shape).round()
+#         # org_data.shape[640,640,3]  im.shape[:2]原图宽高
+#         det[:, :4] = scale_boxes(org_data.shape, det[:, :4], im.shape[:2]).round()
+#     # names = yaml_load(label_path)['names']
+#     colors = Colors()  #
+#     for *xyxy, conf, cls in reversed(det):
+#         c = int(cls)
+#         label = names[c]
+#         box_label(im, xyxy, label, color=colors(c, True))
+#         # cv.imshow("img",im)
+#         # cv2.waitKey(0)
+#     return im
+def post_process_yolov5(det, im, names, org_data):
     if len(det):
-        det[:, :4] = scale_boxes(im.shape[:2], det[:, :4], im.shape).round()
-        names = yaml_load(label_path)['names']
-        colors = Colors()
-        for *xyxy, conf, cls in reversed(det):
-            c = int(cls)
-            label = names[c]
-            box_label(im, xyxy, label, color=colors(c, True))
-
-            # cv2.imshow('img', im)
-            # cv2.waitKey()
-            # cv2.destroyAllWindows()
-    return im,label
-
-LOGGING_NAME = "yolov5"
-
-def set_logging(name=LOGGING_NAME, verbose=True):
-    """Configures logging with specified verbosity; `name` sets the logger's name, `verbose` controls logging level."""
-    rank = int(os.getenv("RANK", -1))  # rank in world for Multi-GPU trainings
-    level = logging.INFO if verbose and rank in {-1, 0} else logging.ERROR
-    logging.config.dictConfig(
-        {
-            "version": 1,
-            "disable_existing_loggers": False,
-            "formatters": {name: {"format": "%(message)s"}},
-            "handlers": {
-                name: {
-                    "class": "logging.StreamHandler",
-                    "formatter": name,
-                    "level": level,
-                }
-            },
-            "loggers": {
-                name: {
-                    "level": level,
-                    "handlers": [name],
-                    "propagate": False,
-                }
-            },
-        }
-    )
-
-set_logging(LOGGING_NAME)  # run before defining LOGGER
-LOGGER = logging.getLogger(LOGGING_NAME)  # define globally (used in train.py, val.py, detect.py, etc.)
-# if platform.system() == "Windows":
-#     for fn in LOGGER.info, LOGGER.warning:
-#         setattr(LOGGER, fn.__name__, lambda x: fn(emojis(x)))  # emoji safe logging
+        # det[:, :4] = scale_boxes(im.shape[:2], det[:, :4], im.shape).round()
+        # org_data.shape[640,640,3]  im.shape[:2]原图宽高
+        det[:, :4] = scale_boxes(org_data.shape, det[:, :4], im.shape[:2]).round()
+    # names = yaml_load(label_path)['names']
+    colors = Colors()  #
+    label_name = []
+    for *xyxy, conf, cls in reversed(det):
+        c = int(cls)
+        label = names[c]
+        label_name.append(label)
+        box_label(im, xyxy, label, color=colors(c, True))
+        # cv.imshow("img",im)
+        # cv2.waitKey(0)
+    return im ,label_name
 
 def non_max_suppression(
         prediction,
@@ -277,10 +264,53 @@ def non_max_suppression(
         if mps:
             output[xi] = output[xi].to(device)
         if (time.time() - t) > time_limit:
-            LOGGER.warning(f"WARNING ⚠️ NMS time limit {time_limit:.3f}s exceeded")
+            # LOGGER.warning(f"WARNING ⚠️ NMS time limit {time_limit:.3f}s exceeded")
             break  # time limit exceeded
 
     return output
 
 
+def resize_image_cv2(image, size):
+    ih, iw, ic = image.shape
+    w, h = size
+    scale = min(w / iw, h / ih)
+    nw = int(iw * scale)
+    nh = int(ih * scale)
 
+    image = cv2.resize(image, (nw, nh))
+    new_image = np.ones((size[0], size[1], 3), dtype='uint8') * 128
+    # new_image = np.ones((size[0], size[1], 3), dtype='uint8')
+    start_h = (h - nh) / 2
+    start_w = (w - nw) / 2
+    end_h = size[1] - start_h
+    end_w = size[0] - start_w
+    new_image[int(start_h):int(end_h), int(start_w):int(end_w)] = image
+
+    # cv2.imshow('new_image',new_image)
+    # cv2.waitKey(0)
+    return new_image, nw, nh
+
+
+def data_process_cv2(frame, input_shape):
+    image_data, nw, nh = resize_image_cv2(frame, (input_shape[1], input_shape[0]))
+    org_data = image_data.copy()
+    np_data = np.array(image_data, np.float32)
+    np_data = np_data / 255
+    image_data = np.expand_dims(np.transpose(np_data, (2, 0, 1)), 0)
+    image_data = np.ascontiguousarray(image_data)  # 内存连续
+    return image_data, org_data
+
+    # img = cv2.resize(img,imgsz)
+    # # print(img.shape)
+    # img = img/255
+    # # print(img.shape)
+    # img = np.expand_dims(img,axis=0)
+    # # print(img.shape)
+    # img = np.transpose(img,(0,3,2,1))
+    # return img
+
+# img = np.zeros([55,55,3])
+# print(img.shape)
+# imgsz = [100,100]
+# print(data_process_cv2(img, imgsz).shape)
+#

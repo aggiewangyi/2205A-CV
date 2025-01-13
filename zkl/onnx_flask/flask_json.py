@@ -5,12 +5,13 @@ import json
 import cv2
 import numpy as np
 import onnxruntime
-import time
-import random
-import torch
-from flask import Flask,request,render_template
+from flask import Flask,request
 from demo01 import *
 import base64
+import time
+from turbojpeg import TurboJPEG
+jpeg = TurboJPEG()
+
 
 app = Flask(__name__,template_folder='./html')
 
@@ -21,14 +22,47 @@ def onnx_load(w):
     output_names = [x.name for x in session.get_outputs()]
     return session, output_names
 
-def cv2_to_base64(image):
-    _,image = cv2.imencode('.jpg',image)
-    return base64.b64encode(image).decode('utf-8')
 
+#将图片转编码成二进制流
+'opencv'
+# def cv2_to_base64(image):
+#     start_time = time.time()
+#     _,image = cv2.imencode('.jpg',image)
+#     end_time = (time.time()-start_time) * 1000
+#     print(f'imencode编码耗时:{end_time}ms')
+#     return base64.b64encode(image).decode('utf-8')
+
+'turbojpeg'
+def cv2_to_base64(image):
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    encoded_image_data = jpeg.encode(image_rgb, quality=75)
+    return base64.b64encode(encoded_image_data).decode('utf-8')
+
+
+#将二进制流解码成图片
+'opencv'
+# def base64_to_cv2(base64_string):
+#     image_data = base64.b64decode(base64_string)
+#     hu = np.frombuffer(image_data, np.uint8)
+#
+#     start_time = time.time()
+#     image = cv2.imdecode(hu,cv2.IMREAD_COLOR)
+#     end_time = (time.time() - start_time) * 1000
+#
+#     print(f'imdecode解码耗时:{end_time}ms')
+#     return image
+
+'turbojpeg'
 def base64_to_cv2(base64_string):
+
     image_data = base64.b64decode(base64_string)
-    image = cv2.imdecode(np.frombuffer(image_data,np.uint8),cv2.IMREAD_COLOR)
+    start_time = time.time()
+    image_rgb = jpeg.decode(image_data)
+    end_time = (time.time() - start_time) * 1000
+    print(f'imencode编码耗时:{end_time}ms')
+    image = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
     return image
+
 
 
 def data_process_cv2(img, imgsz):
@@ -86,6 +120,7 @@ device = torch.device("cuda:0")
 def predict():
     if request.method == 'POST':
         try:
+
             data = json.loads(request.data)
             data = data['feed'][0]['x'].encode('utf-8')
             im0 = base64_to_cv2(data)
@@ -96,10 +131,10 @@ def predict():
             pred = torch.from_numpy(y[0]).to(device)
             pred = non_max_suppression(pred, conf_thres=0.25, iou_thres=0.45, max_det=1000)
 
-            res_img = post_process_yolov5(pred[0], org_data)
+            res_img,label= post_process_yolov5(pred[0], org_data)
 
             res_img = cv2_to_base64(res_img)
-            res_data = {"feed": [{"img": res_img}, {"label": 'aaaaa'}], "fetch": ["res"]}
+            res_data = {"feed": [{"img": res_img}, {"label": label}], "fetch": ["res"]}
             return res_data
 
         except Exception as e:
