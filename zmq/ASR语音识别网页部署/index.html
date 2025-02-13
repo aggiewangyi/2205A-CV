@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频录制</title>
+
+    <style>
+        .box {
+          width: 500px;
+          height: 300px;
+          background-color: #f0f0f0;
+          border: 2px solid #000;
+          border-radius: 10px;
+          padding: 20px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          transition: all 0.3s ease;
+          color: #333;
+          font-family: 'Arial', sans-serif;
+          font-size: 16px;
+          text-align: left;
+        }
+      
+        .box:hover {
+          background-color: #ddd; /* 鼠标悬停时改变背景颜色 */
+          transform: translateY(-5px); /* 鼠标悬停时轻微上移 */
+        }
+      </style>
+</head>
+
+<body>
+    <!-- 人工智能 CV-AIGC 项目-语音识别任务 -->
+
+
+<div class="box">
+    <!--创建一个表单，id属性用于JavaScript中引用，enctype="multipart/form-data"属性允许表单包含文件上传。 -->
+    <form id="recognize-form" enctype="multipart/form-data">
+        <label for="audio">上传音频文件:</label><!--标签，与下面的文件输入控件关联，for属性与输入控件的id匹配。 -->
+        <br/>
+        <!-- <input type="file" id="audio" name="audio" accept="audio/*">文件输入控件，允许用户选择一个文件，accept="audio/*"属性限制只能选择音频文件。 -->
+        <input type="file" id="audio" name="audio" accept="audio/*,.wav,.mp3,.ogg,.flac,.mp4,.avi,.mov">
+        
+        <button type="button" onclick="submitForm()">上传并识别</button><!--按钮，点击时调用submitForm()函数，而不是提交表单（因为type是button）。 -->
+    </form>
+
+        <br/>
+        <br/>
+        <label for="audio">麦克风录制:</label>
+        <br/>
+        <button id="recordButton">开始录制</button>
+        <button id="stopButton" disabled>停止录制</button>
+        <!-- <h2>美化后的盒子</h2>
+        <p>这是一个使用CSS美化的HTML盒子。</p> -->
+    
+    <br/>
+    <h2>识别的文本:</h2><!--二级标题 -->
+    <p id="recognized-text"></p><!-- 段落，用于显示识别的文本，id属性用于JavaScript中引用。 -->
+</div>
+
+
+
+
+
+    <script>
+        const recordButton = document.getElementById('recordButton');
+        const stopButton = document.getElementById('stopButton');
+
+        const form = document.getElementById('recognize-form');<!--获取表单元素。 -->
+
+        let mediaRecorder;
+        let recordedChunks = [];
+
+        // 请求用户授权使用麦克风
+        navigator.mediaDevices.getUserMedia({ audio: true })
+          .then(stream => {
+            try {
+                mediaRecorder = new MediaRecorder(stream);
+
+                // 录制数据可用时触发
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                // 录制停止时触发
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                    recordedChunks = [];
+
+                    // 创建 FormData 对象
+                    const formData1 = new FormData();
+                    formData1.append('audio', blob, 'recorded_audio.webm');
+
+                    // 发送音频数据到后端
+                    fetch('/recognize', {
+                        method: 'POST',
+                        body: formData1
+                    })
+                      .then(response => response.text())
+                      .then(message => {
+                            console.log(message);
+                            document.getElementById('recognized-text').textContent = message || 'No text recognized';
+                        })
+                      .catch(error => {
+                            console.error('保存音频时出错:', error);
+                        });
+                };
+
+                // 开始录制按钮点击事件
+                recordButton.addEventListener('click', () => {
+                    mediaRecorder.start();
+                    recordButton.disabled = true;
+                    stopButton.disabled = false;
+                });
+
+                // 停止录制按钮点击事件
+                stopButton.addEventListener('click', () => {
+                    mediaRecorder.stop();
+                    recordButton.disabled = false;
+                    stopButton.disabled = true;
+                });
+
+                    } catch (error) {
+                    alert('An error occurred while submitting the form.');
+                    };
+
+
+                try {
+                // 上传表单
+                form.addEventListener('click', () => {
+                    // 创建 FormData2 对象
+                    const formData2 = new FormData(form);//<!--创建一个FormData对象，包含表单的数据。 -->
+
+                    // 发送音频数据到后端
+                    fetch('/recognize', {
+                        method: 'POST',
+                        body: formData2
+                    })
+                      .then(response => response.text())
+                      .then(message => {
+                            console.log(message);
+                            document.getElementById('recognized-text').textContent = message || 'No text recognized';
+                        })
+                      .catch(error => {
+                            console.error('保存音频时出错:', error);
+                        });
+
+                });
+                    } catch (error) {
+                    alert('An error occurred while submitting the form.');
+                    };
+
+            })
+          .catch(error => {
+                console.error('无法访问麦克风:', error);
+
+                // 上传表单
+                form.addEventListener('click', () => {
+                    // 创建 FormData 对象
+                    const formData2 = new FormData(form);//<!--创建一个FormData对象，包含表单的数据。 -->
+
+                    // 发送音频数据到后端
+                    fetch('/recognize', {
+                        method: 'POST',
+                        body: formData2
+                    })
+                      .then(response => response.text())
+                      .then(message => {
+                            console.log(message);
+                            document.getElementById('recognized-text').textContent = message || 'No text recognized';
+                        })
+                      .catch(error => {
+                            console.error('保存音频时出错:', error);
+                        });
+
+                });
+            });
+    </script>
+</body>
+
+</html>
