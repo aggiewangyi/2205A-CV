@@ -170,6 +170,8 @@ cython_debug/
 *.onnx
 coco/
 #images
+*.png
+*.jpeg
 *.pt
 *.onnx
 *.engine
