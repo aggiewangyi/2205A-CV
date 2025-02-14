@@ -173,6 +173,7 @@ coco/
 *.jpg
 *.png
 *.jpeg
+
 *.pt
 *.onnx
 *.engine
