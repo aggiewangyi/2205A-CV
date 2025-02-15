@@ -1,0 +1,47 @@
+<!-- static/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音识别</title>
+</head>
+<body>
+    <h1>语音识别服务</h1>
+    <h3>上传语音文件</h3>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="audioFile" name="file" accept="audio/*" />
+        <button type="submit">上传并识别</button>
+    </form>
+
+    <h3>录制语音</h3>
+    <button id="recordButton">录制并识别</button>
+
+    <h3>识别结果：</h3>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('audioFile');
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            const response = await fetch("/upload_audio/", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+            document.getElementById("result").innerText = "识别结果: " + result.text;
+        });
+
+        document.getElementById('recordButton').addEventListener('click', async function() {
+            const response = await fetch("/record_audio/", { method: "POST" });
+            const result = await response.json();
+            document.getElementById("result").innerText = "识别结果: " + result.text;
+        });
+    </script>
+</body>
+</html>
