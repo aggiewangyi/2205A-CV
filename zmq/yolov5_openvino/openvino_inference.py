@@ -55,7 +55,7 @@ class OpenVino:
         return image_data
 
     def yaml_load(self, file="data.yaml", append_filename=False):
-    # def yaml_load(self, file="yolov5s_openvino_model/yolov5s.yaml", append_filename=False):
+        # def yaml_load(self, file="yolov5s_openvino_model/yolov5s.yaml", append_filename=False):
         # assert Path(file).suffix in (".yaml", ".yml"), f"attempting to load non-YAML file ffile} with yaml load()'
         with open(file, errors="ignore", encoding="utf-8") as f:
             s = f.read()  # string
@@ -70,9 +70,9 @@ class OpenVino:
             return data
 
     def darw_detections(self, img, box, score, class_id):
-        # Extract the coordinates of the bounding box
+        # 提取边界框的坐标; Extract the coordinates of the bounding box
         x1, y1, w, h = box
-        ## Retrieve the color for the class ID
+        ## 检索类ID的颜色;Retrieve the color for the class ID
         color = self.color_palette[class_id]
         # Draw the bounding box on the image
         cv2.rectangle(img, (int(x1), int(y1)), (int(x1 + w), int(y1 + h)), color, 2)
@@ -99,53 +99,52 @@ class OpenVino:
         # 获取每行最大值
         row_max_values = np.amax(score_matrix, axis=1)
         max_values_index = np.argmax(score_matrix, axis=1)
-        indices = np.where(row_max_values>self.confidence_thres)
+        indices = np.where(row_max_values > self.confidence_thres)
         class_ids = max_values_index[indices]
-        obj_boxes = boxes[indices,:][0]
+        obj_boxes = boxes[indices, :][0]
         obj_scores = row_max_values[indices]
-        obj_boxes[:,0]=(obj_boxes[:,0]-obj_boxes[:,2]/2)
-        obj_boxes[:,1]=(obj_boxes[:,1]-obj_boxes[:,3]/2)
-        obj_boxes=obj_boxes.astype(int)
+        obj_boxes[:, 0] = (obj_boxes[:, 0] - obj_boxes[:, 2] / 2)
+        obj_boxes[:, 1] = (obj_boxes[:, 1] - obj_boxes[:, 3] / 2)
+        obj_boxes = obj_boxes.astype(int)
 
-        res_indices = cv2.dnn.NMSBoxes(obj_boxes.tolist(),obj_scores.tolist(),self.confidence_thres,self.iou_thres)
+        res_indices = cv2.dnn.NMSBoxes(obj_boxes.tolist(), obj_scores.tolist(), self.confidence_thres, self.iou_thres)
         res_boxes = obj_boxes[res_indices].tolist()
         res_scores = obj_scores[res_indices].tolist()
         res_class = class_ids[res_indices].tolist()
 
-        #spend_time = (time.time() - start time) * 1000
-        #print("post spend time:",spend_time)
+        # spend_time = (time.time() - start time) * 1000
+        # print("post spend time:",spend_time)
         for index in range(len(res_boxes)):
-            self.darw_detections(self.img,res_boxes[index],res_scores[index],res_class[index])
-        cv2.imshow('src',self.img)
+            self.darw_detections(self.img, res_boxes[index], res_scores[index], res_class[index])
+        cv2.imshow('src', self.img)
         cv2.waitKey(0)
         return
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     # model_path = r'C:\Users\quant\Desktop\cs\yolov5s_openvino_model'
     # model_path = r'C:\Users\quant\Desktop\专高六\day5\openvino\model'
 
     model_path = r'C:\Users\quant\Desktop\专高六\day5\openvino\yolov5s_openvino_model'
 
-    #model path ="fish best int8 openvino model"
+    # model path ="fish best int8 openvino model"
     openvino = OpenVino(model_path)
-    image_dir =r"C:\Users\quant\Desktop\cs\coco128\images\train2017"
+    image_dir = r"C:\Users\quant\Desktop\cs\coco128\images\train2017"
     images = os.listdir(image_dir)
     for image_item in images:
         # print('image_item',image_item)
-        image_path  =os.path.join(image_dir,image_item)
+        image_path = os.path.join(image_dir, image_item)
         src = cv2.imread(image_path)
 
-        input_data =openvino.preprocess(src)
-
+        input_data = openvino.preprocess(src)
 
         # start_time = time.time()
         numpy_data = openvino.preprocess(src)
         start_time = time.time()
         numpy_output = openvino.run(input_data)
         # print(numpy_output.shape)
-        spend_time  = (time.time()-start_time)*1000
-        print('inference spend time:',spend_time)
+        spend_time = (time.time() - start_time) * 1000
+        print('inference spend time:', spend_time)
 
         #
         openvino.enhance_postporcess(numpy_output)
-
