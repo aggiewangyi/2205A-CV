@@ -1,0 +1,70 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+     <meta charset="UTF-8">
+    <title>语音识别服务</title>
+</head>
+<body>
+    <h1>八维语音识别系统</h1>
+
+    <!-- 文件上传 -->
+    <div>
+        <h3>上传语音文件</h3>
+        <input type="file" id="audioFile" accept=".wav,.mp3">
+        <button onclick="uploadFile()">上传识别</button>
+    </div>
+
+    <!-- 实时录音 -->
+    <div>
+        <h3>实时录音</h3>
+        <button id="recordBtn" onclick="startRecording()">开始录音</button>
+        <p id="result"></p>
+    </div>
+
+    <script>
+        async function uploadFile() {
+            const file = document.getElementById('audioFile').files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            document.getElementById('result').innerText = result.result;
+        }
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    const mediaRecorder = new MediaRecorder(stream);
+                    const audioChunks = [];
+
+                    mediaRecorder.addEventListener('dataavailable', event => {
+                        audioChunks.push(event.data);
+                    });
+
+                    mediaRecorder.addEventListener('stop', async () => {
+                        const audioBlob = new Blob(audioChunks);
+                        const formData = new FormData();
+                        formData.append('audio', audioBlob);
+
+                        const response = await fetch('/record', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+                        document.getElementById('result').innerText = result.result;
+                    });
+
+                    mediaRecorder.start();
+                    setTimeout(() => mediaRecorder.stop(), RECORD_SECONDS * 1000);
+                });
+        }
+    </script>
+</body>
+</html>
