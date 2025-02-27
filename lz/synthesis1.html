@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>文本转语音工具</title>
+    <style>
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; }
+        textarea { width: 100%; height: 150px; margin: 10px 0; padding: 10px; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        .controls { margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>文本转语音合成</h1>
+        <textarea id="textInput" placeholder="输入要合成的文本..."></textarea>
+
+        <div class="controls">
+            <button onclick="synthesizeSpeech()">立即合成</button>
+            <button onclick="stopSpeech()">停止播放</button>
+            <select id="voiceList"></select>
+            <label>语速: <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1"></label>
+            <label>音调: <input type="range" id="pitch" min="0" max="2" step="0.1" value="1"></label>
+        </div>
+
+        <audio id="audioPlayer" controls style="width: 100%; margin-top: 20px;"></audio>
+    </div>
+
+    <script>
+        let synth = window.speechSynthesis;
+        let voices = [];
+
+        // 初始化语音列表
+        function populateVoiceList() {
+            voices = synth.getVoices();
+            const voiceSelect = document.getElementById("voiceList");
+
+            voices.forEach(voice => {
+                const option = document.createElement("option");
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.setAttribute("data-lang", voice.lang);
+                option.setAttribute("data-name", voice.name);
+                voiceSelect.appendChild(option);
+            });
+        }
+
+        populateVoiceList();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoiceList;
+        }
+
+        // 合成语音
+        function synthesizeSpeech() {
+            const text = document.getElementById("textInput").value;
+            if (!text) {
+                alert("请输入要合成的文本");
+                return;
+            }
+
+            const selectedVoice = document.getElementById("voiceList").selectedOptions[0].dataset.name;
+            const rate = parseFloat(document.getElementById("rate").value);
+            const pitch = parseFloat(document.getElementById("pitch").value);
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = voices.find(voice => voice.name === selectedVoice);
+            utterance.rate = rate;
+            utterance.pitch = pitch;
+
+            synth.speak(utterance);
+        }
+
+        // 停止播放
+        function stopSpeech() {
+            synth.cancel();
+        }
+    </script>
+</body>
+</html>
