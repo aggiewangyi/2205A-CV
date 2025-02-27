@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>语音识别工具</title>
+    <style>
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        button { padding: 8px 15px; margin: 5px; cursor: pointer; }
+        #result { margin-top: 20px; padding: 15px; border: 1px solid #4CAF50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 文件上传 -->
+        <div class="section">
+            <h3>1. 上传语音文件</h3>
+            <input type="file" id="fileInput" accept="audio/*">
+            <button onclick="uploadFile()">上传识别</button>
+        </div>
+
+        <!-- 录音功能 -->
+        <div class="section">
+            <h3>2. 实时录音识别</h3>
+            <button id="recordButton">开始录音</button>
+            <button id="stopButton" disabled>停止并识别</button>
+        </div>
+
+        <!-- 结果显示 -->
+        <div id="result"></div>
+    </div>
+    <script>
+        // 文件上传处理
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('请先选择音频文件');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('audio', file);
+
+            try {
+                const response = await fetch('/recognize', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                showResult(result.text);
+            } catch (error) {
+                console.error('识别失败:', error);
+            }
+        }
+
+        // 录音功能实现
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById('recordButton').addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob, 'recording.wav');
+
+                    try {
+                        const response = await fetch('/recognize', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const result = await response.json();
+                        showResult(result.text);
+                    } catch (error) {
+                        console.error('识别失败:', error);
+                    }
+                    audioChunks = [];
+                };
+
+            mediaRecorder.start();
+            document.getElementById('recordButton').disabled = true;
+            document.getElementById('stopButton').disabled = false;
+        } catch (err) {
+            alert('无法访问麦克风: ' + err);
+        }
+    });
+
+    document.getElementById('stopButton').addEventListener('click', () => {
+        mediaRecorder.stop();
+        document.getElementById('recordButton').disabled = false;
+        document.getElementById('stopButton').disabled = true;
+        });
+
+        // 显示结果
+        function showResult(text) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<strong>识别结果:</strong><br>${text}`;
+        }
+    </script>
+</body>
