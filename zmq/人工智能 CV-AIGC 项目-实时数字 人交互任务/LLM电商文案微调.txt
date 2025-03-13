@@ -1,0 +1,21 @@
+使用模型：Meta-Llama-3-8B
+数据集：商品文案生成数据集
+目标效果：通过商品标签提示词生成商品介绍文案
+微调平台：llamafactory-cli
+微调前：
+User：类型#裤*版型#宽松*风格#性感*图案#线条*裤型#阔腿裤
+Assistant: It looks like you're describing a type of pants!
+Here's a breakdown of the characteristics you mentioned:
+类型(type):#裤(pants）
+版型(style):#宽松(loose/fitted)
+风格（style): #性感(sensual/sex appeal）
+图案(pattern)：#线条(striped)
+裤型(pant type): #阔腿裤(wide-leg pants)
+So, it seems like you're describing a pair of loose-fitting, wide-leg pants with a sensual style and striped pattern. Am I correct?
+（模型不理解文案生成规则）
+100步微调后：
+User：类型#裤*版型#宽松*风格#性感*图案#线条*裤型#阔腿裤
+Assistant：这款阔腿裤采用了经典的版型设计，宽松的裤脚，能起到修饰腿部线条的作用，给你带来更加有气质的穿着体验。裤身采用了修身的设计，能起到束腰的作用，显性感的身材曲线。
+（模型理解文案生成规则）
+
+llamafactory-cli chat --model_name_or_path Meta-Llama-3-8B-Instruct  --adapter_name_or_path ./saves/LLaMA3-8B-quan/lora/sft/checkpoint-100 --template llama3 --finetuning_type lora
