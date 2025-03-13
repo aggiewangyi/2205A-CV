@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>语音合成系统</title>
+</head>
+<body>
+    <h1>八维教育语音合成系统</h1>
+    <form id="synthForm">
+        <textarea name="text" rows="5" cols="50" placeholder="输入文本..."></textarea>
+        <br>
+        <button type="submit">生成语音</button>
+    </form>
+    <audio id="audioPlayer" controls style="margin-top:20px"></audio>
+
+    <script>
+        document.getElementById("synthForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const response = await fetch("/synthesize", {
+                method: "POST",
+                body: formData
+            });
+            const data = await response.json();
+            document.getElementById("audioPlayer").src = data.audio_url;
+        });
+    </script>
+</body>
+</html>
